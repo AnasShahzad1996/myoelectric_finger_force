@@ -119,6 +119,8 @@ class OptionsForm(object):
 		button_stat = Button(Largelabel, bg="#34e1eb", text ="Statistics", font = "Oswald 20 bold", command = lambda: self.get_button_text(button_stat))
 		button_stat.place(x = 250, y=550)
 
+		button_exam = Button(Largelabel, bg="#34e1eb", text ="Example", font = "Oswald 20 bold", command = lambda: self.get_button_text(button_exam))
+		button_exam.place(x = 250, y=650)
 
 
 		
@@ -140,6 +142,13 @@ class OptionsForm(object):
 		label3 = Label(Largelabel, bg = "#ccccff",image=image3_wid)
 		label3.place(x=600,y=530)
 
+		image4 = Image.open("/home/anas/Desktop/code/courses/neuro/project_code/resources/example.png")
+		image4 = image4.resize((100, 100))
+		image4_wid = ImageTk.PhotoImage(image4)
+		label4 = Label(Largelabel, bg = "#ccccff",image=image4_wid)
+		label4.place(x=600,y=630)
+
+
 		self.currform.mainloop()
 
 	def get_button_text(self,button):
@@ -147,6 +156,8 @@ class OptionsForm(object):
 			self.current_op = 0
 		elif "Force measurement" == button["text"]:
 			self.current_op = 1
+		elif "Example" == button["text"]:
+			self.current_op = 3
 		else:
 			self.current_op = 2
 
@@ -439,6 +450,105 @@ class Measurment_form(object):
 			json.dump(final_dict, file)
 		self.save_and_close = True
 
+class example_graph(object):
+	"""docstring for example_graph"""
+	def __init__(self, user_dict):
+		super(example_graph, self).__init__()
+		self.user_dict = user_dict
+		self.sine_wave = []
+		self.fing_f = {"little" :[0] * 200,"ring":[0] * 200,"middle":[0] * 200,"index":[0] * 200,"thumbx":[0] * 200,"thumby":[0] * 200}
+
+		plt.ion()
+		fig = plt.figure(figsize=(15, 10))
+		self.ref_fig = fig
+		x = np.linspace(0., 5., 100)
+		y = np.sin(x)
+
+		rows = 1
+		columns = 2
+
+		grid = plt.GridSpec(rows, columns, wspace = .25, hspace = .25)
+		line_fig = {}
+		count = 0
+		
+
+		ax1 = plt.subplot(grid[0, 0])
+		plt.annotate("Little", xy = (10, -5), va = 'center', ha = 'center',  weight='bold', fontsize = 7.5)
+		ax1.set_xlim(0,200)
+		ax1.set_ylim(-10,10)
+		line1 = plt.plot(x,y)
+
+		ax1 = plt.subplot(grid[0, 1])
+		plt.annotate("Middle", xy = (10, -5), va = 'center', ha = 'center',  weight='bold', fontsize = 7.5)
+		ax1.set_xlim(0,200)
+		ax1.set_ylim(-10,10)
+		line3 = plt.plot(x,y)
+
+		
+		self.save_and_close = False
+		import time
+		offset = None
+		with open('data/calib_param.json', 'r') as file:
+			offset = json.load(file)
+
+		total_text = {"little" :"","ring":"","middle":"","index":"","thumbx":"","thumby":""}
+		while True:
+			if self.save_and_close:
+				button.on_clicked(self.save_plot)
+				break
+			if (arduinoSerialData.inWaiting()>0):
+				myData = arduinoSerialData.readline()
+				if "$" not in str(myData):
+					total_text,all_m = self.add_string(total_text,str(myData)[2:-5])
+					if all_m:
+						for curr_key in total_text.keys():
+							if curr_key == "little" :
+								self.fing_f[curr_key].append((int(total_text[curr_key])-offset[curr_key][0])/offset[curr_key][1])
+								self.fing_f[curr_key].pop(0)
+								line1[0].set_xdata(range(len(self.fing_f[curr_key])))
+								line1[0].set_ydata(self.fing_f[curr_key])
+								print ("little",self.fing_f[curr_key])
+							elif curr_key == "middle" :
+								self.fing_f[curr_key].append((int(total_text[curr_key])-offset[curr_key][0])/offset[curr_key][1])
+								self.fing_f[curr_key].pop(0)
+								line3[0].set_xdata(range(len(self.fing_f[curr_key])))
+								line3[0].set_ydata(self.fing_f[curr_key])
+								print ("middle",self.fing_f[curr_key]) 
+
+						count +=1
+						total_text = {"little" :"","ring":"","middle":"","index":"","thumbx":"","thumby":""}
+						
+					
+
+				fig.canvas.draw()
+				fig.canvas.flush_events()
+				time.sleep(0.01)
+			else:
+				fig.canvas.draw()
+				fig.canvas.flush_events()
+				time.sleep(0.01)
+
+		count = 0
+
+
+	def add_string(self,total_text,new_txt):
+
+		if "|" in new_txt:
+			split_data = new_txt.split("|")
+			if split_data[1] in total_text.keys():
+				if len(total_text[split_data[1]]) == 0:
+					total_text[split_data[1]] = split_data[0]
+
+		total_bool = True
+		for i in total_text.keys():
+			total_bool= (len(total_text[i]) > 0) and total_bool
+		return total_text, total_bool 
+
+
+	def save_plot(self,event):
+		self.save_and_close = True
+		
+
 
 class Stats_form(object):
 	"""docstring for Stats_form"""
@@ -467,7 +577,9 @@ def main():
 	elif option==1:
 		print ("Force measurement frame")
 		measure_window = Measurment_form(user_dict)
-
+	elif option == 3:
+		print ("Example statistics")
+		example_window = example_graph(user_dict)
 
 	else:
 		print ("Statistics")
