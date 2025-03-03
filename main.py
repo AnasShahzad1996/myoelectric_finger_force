@@ -548,17 +548,6 @@ class example_graph(object):
 	def save_plot(self,event):
 		self.save_and_close = True
 		
-
-
-class Stats_form(object):
-	"""docstring for Stats_form"""
-	def __init__(self, form):
-		super(Stats_form, self).__init__()
-		self.form = form
-						
-
-
-
 def main():
 
 	root = Tk()
@@ -582,7 +571,7 @@ def main():
 		example_window = example_graph(user_dict)
 
 	else:
-		print ("Statistics")
+		print ("Wrong option")
 
 
 if __name__ == '__main__':
